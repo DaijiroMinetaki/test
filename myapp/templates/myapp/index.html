@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カルバート図読み取りアプリ - Index</title>
+  <!-- normalize.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
+  <style>
+    /* 省略（既存スタイルはそのまま） 
+       ここにはもともとの body や header、.app-intro、.upload-section 等へのCSSを適切に記述してください。
+       例えば以下のようなルールを改めて書くことでレイアウト崩れを防げます。*/
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f0fff0;
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      background-color: #0169B7;
+      color: #fff;
+      padding: 15px 30px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    #upload-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .app-intro {
+      margin-bottom: 30px;
+      padding: 15px;
+      background-color: #ffffff;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+    }
+    .app-intro p {
+      margin: 0;
+      line-height: 1.6;
+    }
+    .upload-section {
+      border: 1px solid #aaa;
+      padding: 10px;
+      margin-bottom: 20px;
+      background: #fff;
+      border-radius: 5px;
+    }
+    .step-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 1.2rem;
+    }
+    .step-description {
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .drop-area {
+      border: 2px dashed #aaa;
+      padding: 40px;
+      text-align: center;
+      color: #666;
+      transition: background-color 0.3s, border-color 0.3s;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .drop-area.dragover {
+      background-color: #e0ffe0;
+      border-color: #666;
+      color: #333;
+    }
+    .preview-container {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .pdf-preview,
+    .result-preview {
+      flex: 1;
+      background-color: #d3d3d3;
+      border: 1px solid #aaa;
+      padding: 5px;
+      border-radius: 3px;
+      min-height: 500px; /* 高さを大きめに */
+    }
+    .pdf-preview embed {
+      width: 100%;
+      height: 100%;
+    }
+    .button-group {
+      margin-top: 20px;
+    }
+    button {
+      background-color: #87cefa;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #00bfff;
+    }
+    .prompt-edit-btn {
+      margin-left: 10px;
+      background-color: #87cefa;
+      border: none;
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.3s;
+    }
+    .prompt-edit-btn:hover {
+      background-color: #00bfff;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 90%;
+      text-align: center;
+    }
+    .modal-content textarea {
+      width: 100%;
+      height: 300px;
+      margin-bottom: 20px;
+      resize: vertical;
+    }
+    .modal-content button {
+      margin-right: 10px;
+      background-color: #87cefa;
+    }
+    #loading-overlay {
+      position: fixed;
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      font-size: 1.2rem;
+      color: #333;
+    }
+    #loading-overlay .loading-content {
+      background: #f0ffff;
+      padding: 30px 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    */
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>カルバート図読み取りアプリ</h1>
+</header>
+
+<!-- アプリの簡単なイントロダクション -->
+<div class="app-intro">
+  <p>
+    このアプリでは、PDFの図面を3つのステップに分けて解析します。<br>
+    1つ目のステップでは寸法情報を抽出し、2つ目のステップで前段階の情報と図面の突合を行い、3つ目のステップで計算が正しいかを確認します。<br><br>
+    各ステップでPDFをアップロードし、必要に応じて「プロンプト編集」ボタンからAIに渡す情報を追記・修正することで、より正確な出力を得ることが可能です。<br>
+    分析結果のテキストも「結果を編集」ボタンから調整し、次のステップへ反映できます。
+  </p>
+</div>
+
+<!-- ★ システムプロンプト編集ボタン ★ -->
+<div style="margin-bottom: 20px;">
+  <button id="edit-common-prompt-btn">システムプロンプトを編集</button>
+</div>
+
+<div id="loading-overlay">
+  <div class="loading-content">
+    処理中です。しばらくお待ちください…
+  </div>
+</div>
+
+<div id="upload-container"></div>
+
+<!-- ▼ 既存：プロンプト編集用モーダル ▼ -->
+<div id="prompt-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>プロンプト編集</h2>
+    <textarea id="prompt-modal-textarea"></textarea>
+    <br>
+    <button id="prompt-modal-save">決定</button>
+    <button id="prompt-modal-cancel">戻る</button>
+  </div>
+</div>
+
+<!-- ▼ 既存：結果編集用モーダル ▼ -->
+<div id="result-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>結果を編集</h2>
+    <textarea id="result-modal-textarea"></textarea>
+    <br>
+    <button id="result-modal-save">決定</button>
+    <button id="result-modal-cancel">戻る</button>
+  </div>
+</div>
+
+<!-- ★ 新規：システムプロンプト編集モーダル ★ -->
+<div id="common-prompt-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>システムプロンプト編集</h2>
+    <textarea id="common-prompt-textarea"></textarea>
+    <br>
+    <button id="common-prompt-save">決定</button>
+    <button id="common-prompt-cancel">戻る</button>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const uploadContainer = document.getElementById('upload-container');
+  // 前ステップの結果をフロントで保持
+  const stepResults = ["", "", ""];
+
+  // --- 既存: モーダル要素 ---
+  const promptModal = document.getElementById('prompt-modal');
+  const promptModalTextarea = document.getElementById('prompt-modal-textarea');
+  const promptModalSave = document.getElementById('prompt-modal-save');
+  const promptModalCancel = document.getElementById('prompt-modal-cancel');
+  let currentPromptSection = null; // どのステップのプロンプトを編集中か
+
+  const resultModal = document.getElementById('result-modal');
+  const resultModalTextarea = document.getElementById('result-modal-textarea');
+  const resultModalSave = document.getElementById('result-modal-save');
+  const resultModalCancel = document.getElementById('result-modal-cancel');
+  let currentResultSection = null; // どのステップの結果を編集中か
+
+  // --- ★ 新規: システムプロンプト編集モーダル ---
+  const commonPromptModal = document.getElementById('common-prompt-modal');
+  const commonPromptTextarea = document.getElementById('common-prompt-textarea');
+  const commonPromptSave = document.getElementById('common-prompt-save');
+  const commonPromptCancel = document.getElementById('common-prompt-cancel');
+
+  // ローディング用
+  const loadingOverlay = document.getElementById("loading-overlay");
+
+  // ▼ プロンプト編集モーダルの閉じる/保存
+  promptModalCancel.addEventListener('click', () => {
+    promptModal.style.display = 'none';
+  });
+  promptModalSave.addEventListener('click', () => {
+    if (currentPromptSection) {
+      // ユーザーが編集したベースプロンプトを保存
+      currentPromptSection.dataset.basePrompt = promptModalTextarea.value;
+      // Blobに上書き
+      savePromptToBlob(currentPromptSection.dataset.promptBlob, promptModalTextarea.value);
+    }
+    promptModal.style.display = 'none';
+  });
+
+  // ▼ 結果編集モーダルの閉じる/保存
+  resultModalCancel.addEventListener('click', () => {
+    resultModal.style.display = 'none';
+  });
+  resultModalSave.addEventListener('click', () => {
+    if (currentResultSection) {
+      // ユーザーが編集した結果テキストを dataset に反映
+      currentResultSection.dataset.resultText = resultModalTextarea.value;
+      // 画面表示も更新
+      const openaiTextElem = currentResultSection.querySelector('#openai-result-text');
+      if (openaiTextElem) {
+        openaiTextElem.textContent = resultModalTextarea.value;
+      }
+      // 次ステップで参照できるように stepResults[] にも反映
+      const idx = parseInt(currentResultSection.dataset.stepIndex, 10);
+      stepResults[idx] = resultModalTextarea.value;
+    }
+    resultModal.style.display = 'none';
+  });
+
+  // ★ システムプロンプト編集モーダル
+  commonPromptCancel.addEventListener('click', () => {
+    commonPromptModal.style.display = 'none';
+  });
+  commonPromptSave.addEventListener('click', () => {
+    const textToSave = commonPromptTextarea.value;
+    savePromptToBlob("prompt_common.txt", textToSave); // common用
+    commonPromptModal.style.display = 'none';
+  });
+
+  // ★ システムプロンプトを編集 ボタン
+  const editCommonPromptBtn = document.getElementById('edit-common-prompt-btn');
+  editCommonPromptBtn.addEventListener('click', async () => {
+    // Blobから共通プロンプトを取得
+    const text = await loadPromptFromBlob("prompt_common.txt");
+    commonPromptTextarea.value = text;
+    // モーダル表示
+    commonPromptModal.style.display = 'flex';
+  });
+
+  // ▼ CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // ▼ PromptをBlobから読み込み
+  async function loadPromptFromBlob(blobName) {
+    try {
+      const res = await fetch(`{% url 'get_prompt' %}?blobName=${blobName}`);
+      if (!res.ok) {
+        console.error("Failed to load prompt from blob:", blobName);
+        return "";
+      }
+      return await res.text();
+    } catch (e) {
+      console.error(e);
+      return "";
+    }
+  }
+
+  // ▼ PromptをBlobに保存
+  function savePromptToBlob(blobName, text) {
+    fetch("{% url 'save_prompt' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ blobName: blobName, text: text })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Network response was not ok');
+      return res.json();
+    })
+    .then(data => {
+      console.log("Prompt saved:", data);
+      // alert("システムプロンプトを保存しました。");
+    })
+    .catch(err => console.error("Error saving prompt:", err));
+  }
+
+  // ▼ 各ステップのBlob名
+  function getBlobNames(stepIndex) {
+    switch(stepIndex) {
+      case 0:
+        return { promptBlob: "prompt_dimension.txt" };
+      case 1:
+        return { promptBlob: "prompt_drawing.txt" };
+      case 2:
+        return { promptBlob: "prompt_calculation.txt" };
+      default:
+        return { promptBlob: "" };
+    }
+  }
+
+  // ▼ ステップタイトル
+  function getStepTitle(stepIndex) {
+    switch(stepIndex) {
+      case 0: return "寸法抽出";
+      case 1: return "図面突合";
+      case 2: return "計算確認";
+      default: return "Unknown";
+    }
+  }
+
+  // ▼ ステップ説明文
+  function getStepDescription(stepIndex) {
+    switch(stepIndex) {
+      case 0:
+        return "このステップでは、PDF図面から寸法情報を抽出します。以下に図面PDFをアップロードしてください。必要に応じてプロンプトの編集が可能です。";
+      case 1:
+        return "このステップでは、前ステップで抽出した寸法情報と実際の図面の突合を行います。前ステップ結果を考慮してPDFをアップロードしてください。";
+      case 2:
+        return "このステップでは、抽出した寸法情報をもとに計算を行い、結果に不備がないかを確認します。再度PDFをアップロードしてチェックを実行してください。";
+      default:
+        return "";
+    }
+  }
+
+  // ▼ ステップセクション生成
+  async function createStepSection(stepIndex) {
+    const section = document.createElement('div');
+    section.className = 'upload-section';
+
+    const title = getStepTitle(stepIndex);
+    const description = getStepDescription(stepIndex);
+    const { promptBlob } = getBlobNames(stepIndex);
+
+    section.innerHTML = `
+      <div class="step-title">${title}ステップ</div>
+      <p class="step-description">${description}</p>
+      <p>
+        <button type="button" class="prompt-edit-btn">プロンプト編集</button>
+      </p>
+      <div class="drop-area">
+        PDFファイルをここにドラッグ＆ドロップ<br>またはクリックして選択してください
+      </div>
+      <input type="file" class="pdf-input" accept="application/pdf" style="display:none;">
+      <div class="preview-container" style="display:none;">
+        <div class="pdf-preview"></div>
+        <div class="result-preview"></div>
+      </div>
+      <div class="button-group">
+        <button type="button" class="upload-btn">PDFを選択</button>
+      </div>
+    `;
+    section.dataset.stepIndex = stepIndex;
+    section.dataset.promptBlob = promptBlob;
+
+    // ベースプロンプトをロード
+    let basePrompt = await loadPromptFromBlob(promptBlob);
+    section.dataset.basePrompt = basePrompt;
+
+    // 前ステップの結果を渡す
+    if (stepIndex > 0) {
+      section.dataset.prevResult = stepResults[stepIndex - 1] || "";
+    } else {
+      section.dataset.prevResult = "";
+    }
+
+    attachSectionEvents(section);
+    uploadContainer.appendChild(section);
+  }
+
+  // ▼ ステップイベント設定
+  function attachSectionEvents(section) {
+    const dropArea = section.querySelector('.drop-area');
+    const pdfInput = section.querySelector('.pdf-input');
+    const previewContainer = section.querySelector('.preview-container');
+    const pdfPreview = section.querySelector('.pdf-preview');
+    const resultPreview = section.querySelector('.result-preview');
+    const buttonGroup = section.querySelector('.button-group');
+    const promptEditBtn = section.querySelector('.prompt-edit-btn');
+    let currentFile = null;
+
+    // プロンプト編集ボタン
+    promptEditBtn.addEventListener('click', () => {
+      currentPromptSection = section;
+      promptModalTextarea.value = section.dataset.basePrompt || "";
+      promptModal.style.display = 'flex';
+    });
+
+    // PDF選択ボタン
+    const uploadBtn = section.querySelector('.upload-btn');
+    uploadBtn.addEventListener('click', () => {
+      pdfInput.click();
+    });
+    pdfInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        showLocalPreview(file);
+      }
+    });
+
+    // ドラッグ＆ドロップ
+    dropArea.addEventListener('click', () => {
+      pdfInput.click();
+    });
+    ['dragenter','dragover'].forEach(evt => {
+      dropArea.addEventListener(evt, (ev) => {
+        ev.preventDefault();
+        dropArea.classList.add('dragover');
+      });
+    });
+    ['dragleave','drop'].forEach(evt => {
+      dropArea.addEventListener(evt, (ev) => {
+        ev.preventDefault();
+        dropArea.classList.remove('dragover');
+      });
+    });
+    dropArea.addEventListener('drop', (ev) => {
+      const files = ev.dataTransfer.files;
+      if (files.length > 0) {
+        pdfInput.files = files;
+        showLocalPreview(files[0]);
+      }
+    });
+
+    // PDFプレビュー表示
+    function showLocalPreview(file) {
+      currentFile = file;
+      dropArea.style.display = "none";
+      previewContainer.style.display = "flex";
+
+      const fileURL = URL.createObjectURL(file) + "#zoom=page-width";
+      pdfPreview.innerHTML = `<embed src="${fileURL}" type="application/pdf">`;
+
+      buttonGroup.innerHTML = `
+        <button type="button" class="upload-btn">PDFを再選択</button>
+        <button type="button" class="check-btn">チェック</button>
+      `;
+      attachCheckBtn();
+    }
+
+    // チェックボタン => サーバー送信
+    function attachCheckBtn() {
+      const checkBtn = section.querySelector('.check-btn');
+      if (!checkBtn) return;
+
+      checkBtn.addEventListener('click', () => {
+        if (!currentFile) {
+          alert("PDFファイルを指定してください");
+          return;
+        }
+        loadingOverlay.style.display = "flex";
+
+        const formData = new FormData();
+        formData.append("pdf", currentFile);
+
+        const basePrompt = section.dataset.basePrompt || "";
+        const prevResult = section.dataset.prevResult || "";
+        let finalPrompt = basePrompt;
+        if (prevResult) {
+          finalPrompt += `\n\n---（前ステップの結果）---\n` + prevResult;
+        }
+
+        formData.append("prompt", finalPrompt);
+        const stepIndex = parseInt(section.dataset.stepIndex, 10);
+        formData.append("checkcount", stepIndex);
+
+        fetch("{% url 'upload' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": getCookie('csrftoken')
+          }
+        })
+        .then(res => res.json())
+        .then(data => {
+          loadingOverlay.style.display = "none";
+          resultPreview.innerHTML = `
+            <p>${data.result}</p>
+            <div style="white-space: pre-wrap;" id="openai-result-text">${data.bottomText}</div>
+            <button type="button" class="result-edit-btn">結果を編集</button>
+          `;
+          section.dataset.resultText = data.bottomText;
+          stepResults[stepIndex] = data.bottomText;
+
+          const resultEditBtn = resultPreview.querySelector('.result-edit-btn');
+          if (resultEditBtn) {
+            resultEditBtn.addEventListener('click', () => {
+              currentResultSection = section;
+              resultModalTextarea.value = section.dataset.resultText || "";
+              resultModal.style.display = 'flex';
+            });
+          }
+
+          if (stepIndex < 2) {
+            const nextStepTitle = getStepTitle(stepIndex + 1);
+            buttonGroup.innerHTML = `
+              <button type="button" class="next-step-btn">次のステップ：${nextStepTitle}ステップ</button>
+            `;
+            const nextBtn = section.querySelector('.next-step-btn');
+            nextBtn.addEventListener('click', () => {
+              createStepSection(stepIndex + 1);
+            });
+          } else {
+            buttonGroup.innerHTML = `<button type="button" disabled>終了</button>`;
+          }
+        })
+        .catch(err => {
+          loadingOverlay.style.display = "none";
+          console.error("Check error:", err);
+          alert("エラーが発生しました。コンソールを確認してください。");
+        });
+      });
+    }
+  }
+
+  // ▼ 初期表示：1つ目のステップを生成
+  createStepSection(0);
+});
+</script>
+</body>
+</html>
