@@ -1,4 +1,4 @@
-Django==5.1.4
+Django==4.2.5
 openai==1.66.2
 PyMuPDF==1.22.5
 azureopenai==0.0.1
