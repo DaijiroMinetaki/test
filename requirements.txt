@@ -4,7 +4,7 @@ PyMuPDF==1.22.5
 azureopenai==0.0.1
 asgiref==3.8.1
 sqlparse==0.5.3
-Pillow
+Pillow==10.0.0
 dotenv==0.9.9
 pdf2image==1.16.3
 azure-storage-blob==12.25.0
