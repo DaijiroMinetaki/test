@@ -12,8 +12,20 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+print("test")
+# もし既に環境変数がセットされていなければ、.env を読み込む
+if not os.getenv("OPENAI_API_URL"):
+    dotenv_path = BASE_DIR / '.env'
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path)
+    else:
+        raise FileNotFoundError("環境変数SECRET_KEYが設定されておらず、.envも存在しません。")
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -24,9 +36,6 @@ SECRET_KEY = 'django-insecure-m_g_y1!9tcxs&b#_s%y7tch#u0^h1uu@fg#louop^75h&)&=2$
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -129,9 +138,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-DEBUG = False  # 本番環境用にFalseにする
+DEBUG = True  # 本番環境用にFalseにする
 
 ALLOWED_HOSTS = [
     'readbp-appservice01.azurewebsites.net',  # Azureのホスト名を入れる
+    'localhost',
+    '127.0.0.1'
     # 'www.yourcustomdomain.com' など独自ドメインを使う場合は追加
 ]
